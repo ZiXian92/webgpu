@@ -9,6 +9,7 @@
   "author": "zixian92",
   "license": "ISC",
   "dependencies": {
+    "prop-types": "^15.5.8",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
     "react-redux": "^5.0.4",
