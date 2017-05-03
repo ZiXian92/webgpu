@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./:/var/www/webgpu/:rw
+      - ./webgpu.conf:/etc/nginx/vhosts/webgpu.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
