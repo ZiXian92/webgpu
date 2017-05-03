@@ -26,7 +26,7 @@ class MatrixScaler extends React.Component {
     let mtx = []
     for (let r = 0; r < R; r++) {
       let row = []
-      for (let c = 0; c < C; c++) row.push(Math.round(Math.random() * 100000)/100)
+      for (let c = 0; c < C; c++) row.push(Math.round(Math.random() * 100000) / 100)
       mtx.push(row)
     }
 

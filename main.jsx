@@ -10,10 +10,10 @@ const App = (props, context) => (
       <h1>Web GPU Examples</h1>
       <p>Simple examples of GPU parallelizable stuff on web page.</p>
     </div>
-    <MatrixScaler rows={5} cols={5}></MatrixScaler>
+    <MatrixScaler rows={5} cols={5} />
   </div>
-);
+)
 
 let gl = initGL()
 
-render(<App></App>, document.getElementById('app'))
+render(<App />, document.getElementById('app'))
