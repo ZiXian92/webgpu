@@ -2,7 +2,7 @@
  * Defines function to parallelize matrix scaling on GPU.
  */
 
-import { initGL } from './utils.js'
+import { initGL, convertMatrixToTexture, convertTextureToMatrix } from './utils.js'
 
 const vertexPositions = [
   0, 0, 0,
@@ -117,8 +117,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.useProgram(program)
 
   // Convert mtx to vertices/texture
-  // TODO: Implement
-  let mtxTexture = null
+  let mtxTexture = convertMatrixToTexture(mtx, numRows, numCols)
 
   // Init buffer properties
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
