@@ -1,6 +1,5 @@
 import React from 'react'
 import { render } from 'react-dom'
-import { initGL } from './gl/utils.js'
 
 import MatrixScaler from './components/MatrixScaler.jsx'
 
@@ -13,7 +12,5 @@ const App = (props, context) => (
     <MatrixScaler rows={5} cols={5} />
   </div>
 )
-
-let gl = initGL()
 
 render(<App />, document.getElementById('app'))

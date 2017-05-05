@@ -2,7 +2,7 @@
  * Defines function to parallelize matrix scaling on GPU.
  */
 
-import { initGL, convertMatrixToTexture, convertTextureToMatrix } from './utils.js'
+import { gpuutils, initGL, convertMatrixToTexture, convertTextureToMatrix, makeOutputBuffer, deleteOutputBuffer } from './utils.js'
 
 const vertexPositions = [
   0, 0, 0,
@@ -59,30 +59,12 @@ void main() {
 }
 `
 
-let gl = initGL()
-
-// Create and compile shaders
-let vShader = gl.createShader(gl.VERTEX_SHADER)
-let fShader = gl.createShader(gl.FRAGMENT_SHADER)
-gl.shaderSource(vShader, vertexShaderSrc)
-gl.compileShader(vShader)
-gl.shaderSource(fShader, fragmentShaderSrc)
-gl.compileShader(fShader)
-console.log('Compiling vertex shader for matrix scaling')
-console.log(gl.getShaderInfoLog(vShader))
-vShader = gl.getShaderParameter(vShader, gl.COMPILE_STATUS) ? vShader : null
-console.log('Compiling fragment shader for matrix scaling')
-console.log(gl.getShaderInfoLog(fShader))
-fShader = gl.getShaderParameter(fShader, gl.COMPILE_STATUS) ? fShader : null
-
-let program = vShader && fShader ? gl.createProgram() : null
-console.log(program)
+let gl = gpuutils.getGlContext()
+let program = gpuutils.makeShaderPrograms(vertexShaderSrc, fragmentShaderSrc)
 let cubeVertexPositionBuffer
 let cubeTextureCoordBuffer
+
 if (program) {
-  gl.attachShader(program, vShader)
-  gl.attachShader(program, fShader)
-  gl.linkProgram(program)
   gl.useProgram(program)
 
   // Get variable locations of those that take data from buffer or outside
@@ -117,7 +99,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.useProgram(program)
 
   // Convert mtx to vertices/texture
-  let mtxTexture = convertMatrixToTexture(mtx, numRows, numCols)
+  let mtxTexture = gpuutils.makeTexture(mtx, numRows, numCols)
 
   // Init buffer properties
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
@@ -129,11 +111,17 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.activeTexture(gl.TEXTURE0)
   gl.bindTexture(gl.TEXTURE_2D, mtxTexture)
   gl.uniform1i(program.mtxUniformLoc, 0)
+  gl.activeTexture(gl.TEXTURE1)
 
   // Set other uniform constants
   gl.uniform1f(program.scaleFactorUniformLoc, scaleFactor)
   gl.uniform1i(program.numRowsUniformLoc, numRows)
   gl.uniform1i(program.numColsUniformLoc, numCols)
+
+  // Prepare output frame buffer
+  let outputTexture = gpuutils.makeTexture(null, numRows, numCols)
+  let frameBuffer = gpuutils.makeFramebuffer(numRows, numCols, outputTexture)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
 
   // Use gl to "draw" points.
   // Here drawing square using triangle strip and then doing texture mapping.
@@ -141,8 +129,18 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
   // Reconstruct matrix from texture
-  // TODO: Implement
+  let pixels = new Float32Array(numRows * numCols * 4)
+  gl.readPixels(0, 0, numCols, numRows, gl.RGBA, gl.FLOAT, pixels)
+  console.log(pixels)
+  let res = convertTextureToMatrix(pixels, numRows, numCols)
 
-  // Return matrix
-  return mtx
+  // Cleanup
+  gl.bindBuffer(gl.ARRAY_BUFFER, null)
+  gl.bindTexture(gl.TEXTURE_2D, null)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  // gl.deleteTexture(mtxTexture)
+  gl.deleteTexture(outputTexture)
+  // deleteOutputBuffer(outputBuffer)
+
+  return res
 }
