@@ -187,7 +187,9 @@ class GPUUtils {
     // Read pixels and convert into Float32Array by byte interpretation
     let pixels = new Uint8Array(nRows * nCols * 4)
     this.gl.readPixels(0, 0, nCols, nRows, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels)
+    console.log(pixels)
     pixels = new Float32Array(pixels.buffer)
+    console.log(pixels.length)
 
     // Convert into 2D matrix
     let mtx = []

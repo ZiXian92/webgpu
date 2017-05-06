@@ -5,17 +5,17 @@
 import gpuutils from './utils.js'
 
 const vertexPositions = [
-  0, 0, 0,
-  1, 0, 0,
-  0, 1, 0,
-  1, 1, 0
+  -1.0, -1.0, 0.0,
+  1.0, -1.0, 0.0,
+  -1.0, 1.0, 0.0,
+  1.0, 1.0, 0.0
 ]
 
 const textureCoords = [
-  0, 0,
-  1, 0,
-  1, 1,
-  0, 1
+  0.0, 0.0,
+  1.0, 0.0,
+  0.0, 1.0,
+  1.0, 1.0
 ]
 
 const vertexShaderSrc =
