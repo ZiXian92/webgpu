@@ -35,9 +35,12 @@ class MatrixScaler extends React.Component {
 
   scaleMatrix (evt) {
     evt.preventDefault()
+    let mtx = scaleMatrix(this.state.mtx, this.state.R, this.state.C, Number(this.scaleFactorInput.value))
+    console.log(mtx)
     this.setState({
-      mtx: scaleMatrix(this.state.mtx, this.state.R, this.state.C, Number(this.scaleFactorInput.value)),
-      scaleFactor: Number(this.scaleFactorInput.value)})
+      mtx,
+      scaleFactor: Number(this.scaleFactorInput.value)
+    })
   }
 
   render () {

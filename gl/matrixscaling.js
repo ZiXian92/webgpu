@@ -54,8 +54,9 @@ vec3 pack(float val) {
 }
 
 void main() {
-  float newValue = scaleFactor*unpack(texture2D(mtx, vTextureCoord).xyz);
-  gl_FragColor = vec4(pack(newValue), 1);
+  float newValue = scaleFactor*unpack(texture2D(mtx, vTextureCoord).xyzw);
+  // gl_FragColor = vec4(pack(newValue), 1);
+  gl_FragColor = texture2D(mtx, vTextureCoord)
 }
 `
 
@@ -107,21 +108,17 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
   gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0)
 
+  // Prepare output frame buffer
+  let outputTexture = gpuutils.makeTexture(null, numRows, numCols)
+  gpuutils.setFramebufferTexture(outputTexture)
+
   // Activate and bind textures
-  gl.activeTexture(gl.TEXTURE0)
-  gl.bindTexture(gl.TEXTURE_2D, mtxTexture)
-  gl.uniform1i(program.mtxUniformLoc, 0)
-  gl.activeTexture(gl.TEXTURE1)
+  gpuutils.bindTexture(0, mtxTexture, program.mtxUniformLoc)
 
   // Set other uniform constants
   gl.uniform1f(program.scaleFactorUniformLoc, scaleFactor)
   gl.uniform1i(program.numRowsUniformLoc, numRows)
   gl.uniform1i(program.numColsUniformLoc, numCols)
-
-  // Prepare output frame buffer
-  let outputTexture = gpuutils.makeTexture(null, numRows, numCols)
-  let frameBuffer = gpuutils.makeFramebuffer(numRows, numCols, outputTexture)
-  gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
 
   // Use gl to "draw" points.
   // Here drawing square using triangle strip and then doing texture mapping.
@@ -129,10 +126,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
   // Reconstruct matrix from texture
-  let pixels = new Float32Array(numRows * numCols * 4)
-  gl.readPixels(0, 0, numCols, numRows, gl.RGBA, gl.FLOAT, pixels)
-  console.log(pixels)
-  let res = convertTextureToMatrix(pixels, numRows, numCols)
+  let res = gpuutils.readFramebuffer2f(numRows, numCols)
 
   // Cleanup
   gl.bindBuffer(gl.ARRAY_BUFFER, null)

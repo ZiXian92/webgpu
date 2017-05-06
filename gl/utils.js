@@ -84,14 +84,11 @@ class GPUUtils {
   }
 
   /**
-   * Creates a framebuffer to store output data of graphics pipeline.
-   * @param {Integer} nRows
-   * @param {Integer} nCols
+   * Sets frame buffer to use specified texture.
    * @param {WebGLTexture} texture The texture to attach to frame buffer.
-   * @return {{ texture: WebGLTexture, frameBuffer: WebGLFramebuffer }}
    */
-  makeFramebuffer (nRows, nCols, texture) {
-    if (!this.gl) return null
+  setFramebufferTexture (texture) {
+    if (!this.gl) return
     let frameBuffer = this.frameBuffer
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, frameBuffer)
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, texture, 0)
@@ -117,9 +114,6 @@ class GPUUtils {
       default:
         console.log('Unexpected error occurred')
     }
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-
-    return status === this.gl.FRAMEBUFFER_COMPLETE ? frameBuffer : null
   }
 
   /**
@@ -157,6 +151,54 @@ class GPUUtils {
     this.gl.linkProgram(program)
 
     return program
+  }
+
+  /**
+   * Sets the program to be used.
+   * @param {WebGLProgram} program
+   */
+  setProgram (program) {
+    if (!this.gl) return
+    this.gl.useProgram(program)
+  }
+
+  /**
+   * Binds the given texture to the specified texture unit.
+   * @param {Integer} textureUnit
+   * @param {WebGLTexture} texture
+   * @param {WebGLUniformLocation} textureLoc
+   */
+  bindTexture (textureUnit, texture, textureLoc) {
+    if (!this.gl) return null
+
+    this.gl.activeTexture(this.gl[`TEXTURE${textureUnit}`])
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+    this.gl.uniform1i(textureLoc, textureUnit)
+  }
+
+  /**
+   * Reads contents of framebuffer into 2D float array.
+   * @param {Integer} nRows
+   * @param {Integer} nCols
+   * @return {Array<Float32Array>} Returns matrix on success and null if WebGL is not supported.
+   */
+  readFramebuffer2f (nRows, nCols) {
+    if (!this.gl) return null
+
+    // Read pixels and convert into Float32Array by byte interpretation
+    let pixels = new Uint8Array(nRows * nCols * 4)
+    this.gl.readPixels(0, 0, nCols, nRows, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels)
+    pixels = new Float32Array(pixels.buffer)
+
+    // Convert into 2D matrix
+    let mtx = []
+    for (let r = 0; r < nRows; r++) mtx.push(new Array(nCols))
+    pixels.forEach((pixel, i) => {
+      let r = Math.floor(i / nCols)
+      let c = i - r * nCols
+      mtx[r][c] = pixel
+    })
+    return mtx
   }
 }
 
