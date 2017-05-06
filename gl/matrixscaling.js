@@ -4,35 +4,6 @@
 
 import gpuutils from './utils.js'
 
-const vertexPositions = [
-  -1.0, -1.0, 0.0,
-  1.0, -1.0, 0.0,
-  -1.0, 1.0, 0.0,
-  1.0, 1.0, 0.0
-]
-
-const textureCoords = [
-  0.0, 0.0,
-  1.0, 0.0,
-  0.0, 1.0,
-  1.0, 1.0
-]
-
-const vertexShaderSrc =
-`
-#ifdef GL_ES
-precision highp float;
-#endif
-attribute vec3 aVertexCoord;
-attribute vec2 aTextureCoord;
-varying vec2 vTextureCoord;
-
-void main() {
-  gl_Position = vec4(aVertexCoord, 1);
-  vTextureCoord = aTextureCoord;
-}
-`
-
 const fragmentShaderSrc =
 `
 #ifdef GL_ES
@@ -60,7 +31,7 @@ void main() {
 `
 
 let gl = gpuutils.getGlContext()
-let program = gpuutils.makeShaderPrograms(vertexShaderSrc, fragmentShaderSrc)
+let program = gpuutils.makeShaderPrograms(fragmentShaderSrc)
 let cubeVertexPositionBuffer
 let cubeTextureCoordBuffer
 
@@ -70,22 +41,19 @@ if (program) {
   // Get variable locations of those that take data from buffer or outside
   // Refer to https://github.com/bunions1/matrixMultiplyGpu/blob/master/static/sylvester.js and
   // http://learningwebgl.com/blog/?p=28
-  program.vertexCoordAttribute = gl.getAttribLocation(program, 'aVertexCoord')
-  gl.enableVertexAttribArray(program.vertexCoordAttribute)
-  program.textureCoordAttribute = gl.getAttribLocation(program, 'aTextureCoord')
-  gl.enableVertexAttribArray(program.textureCoordAttribute)
+
   program.mtxUniformLoc = gl.getUniformLocation(program, 'mtx')
   program.scaleFactorUniformLoc = gl.getUniformLocation(program, 'scaleFactor')
   program.numRowsUniformLoc = gl.getUniformLocation(program, 'numRows')
   program.numColsUniformLoc = gl.getUniformLocation(program, 'numCols')
 
   // Pre-bind the coords buffers
-  cubeVertexPositionBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositions), gl.STATIC_DRAW)
-  cubeTextureCoordBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW)
+  // cubeVertexPositionBuffer = gl.createBuffer()
+  // gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
+  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositions), gl.STATIC_DRAW)
+  // cubeTextureCoordBuffer = gl.createBuffer()
+  // gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
+  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW)
 }
 
 export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
@@ -104,14 +72,16 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   let mtxTexture = gpuutils.makeTexturef(mtx, numRows, numCols)
 
   // Init buffer properties
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
-  gl.vertexAttribPointer(program.vertexCoordAttribute, 3, gl.FLOAT, gl.FALSE, 12, 0)
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
-  gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, gl.FALSE, 8, 0)
+  // gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
+  // gl.vertexAttribPointer(program.vertexCoordAttribute, 3, gl.FLOAT, gl.FALSE, 12, 0)
+  // gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
+  // gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, gl.FALSE, 8, 0)
 
   // Prepare output frame buffer
   let outputTexture = gpuutils.makeTexturef(null, numRows, numCols)
   gpuutils.setFramebufferTexture(outputTexture)
+
+  program.initVShader()
 
   // Activate and bind textures
   gpuutils.bindTexture(0, mtxTexture, program.mtxUniformLoc)

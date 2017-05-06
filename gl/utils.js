@@ -19,6 +19,22 @@ class GPUUtils {
       this.initGlContext()
       this.gl.getExtension('OES_texture_float')
       this.frameBuffer = this.gl.createFramebuffer()
+
+      // Pre-compile vertex shader for GPGPU operations.
+      // This is to save programmers the trouble of repeating the
+      // same vertex shader each time.
+      this.vShader = this.gl.createShader(this.gl.VERTEX_SHADER)
+      this.gl.shaderSource(this.vShader, GPUUtils.vertexShaderSrc)
+      this.gl.compileShader(this.vShader)
+      console.log('Compiling vertex shader for matrix scaling')
+      let vShaderCompileLog = this.gl.getShaderInfoLog(this.vShader)
+      if (vShaderCompileLog) console.log(vShaderCompileLog)
+
+      // Set up beffer for vertex shader
+      this.vertexTextureCoordsBuffer = this.gl.createBuffer()
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(GPUUtils.vertexTextureCoords), this.gl.STATIC_DRAW)
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
     } else {
       console.log('WebGL not supported')
     }
@@ -128,37 +144,43 @@ class GPUUtils {
 
   /**
    * Compiles the 2 shaders and returns the program.
-   * @param {String} vertexShaderSrc Source code for vertex shader
    * @param {String} fragmentShaderSrc Source code for fragment shader
    * @return {WebGLProgram} The compiled program. Returns null if WebGL is not supported or compilation fails.
    */
-  makeShaderPrograms (vertexShaderSrc, fragmentShaderSrc) {
+  makeShaderPrograms (fragmentShaderSrc) {
     if (!this.gl) return null
 
-    // Create and compile shaders
-    let vShader = this.gl.createShader(this.gl.VERTEX_SHADER)
+    // Create and compile shader
     let fShader = this.gl.createShader(this.gl.FRAGMENT_SHADER)
-    this.gl.shaderSource(vShader, vertexShaderSrc)
-    this.gl.compileShader(vShader)
     this.gl.shaderSource(fShader, fragmentShaderSrc)
     this.gl.compileShader(fShader)
-    console.log('Compiling vertex shader for matrix scaling')
-    let vShaderCompileLog = this.gl.getShaderInfoLog(vShader)
-    if (vShaderCompileLog) console.log(vShaderCompileLog)
-    vShader = this.gl.getShaderParameter(vShader, this.gl.COMPILE_STATUS) ? vShader : null
-    console.log('Compiling fragment shader for matrix scaling')
+    console.log('Compiling fragment shader')
     let fShaderCompileLog = this.gl.getShaderInfoLog(fShader)
     if (fShaderCompileLog) console.log(fShaderCompileLog)
-    fShader = this.gl.getShaderParameter(fShader, this.gl.COMPILE_STATUS) ? fShader : null
 
     // Stop if any shader compilation fails
-    if (vShaderCompileLog || fShaderCompileLog) return null
+    // Assumes that vertex shader compilation succeeds.
+    // Else this class should not be used until it is fixed!
+    if (fShaderCompileLog) return null
 
     // Create program
     let program = this.gl.createProgram()
-    this.gl.attachShader(program, vShader)
+    this.gl.attachShader(program, this.vShader)
     this.gl.attachShader(program, fShader)
     this.gl.linkProgram(program)
+
+    // Set up stuffs for vertex shader
+    program.vertexCoordAttribute = this.gl.getAttribLocation(program, 'aVertexCoord')
+    program.textureCoordAttribute = this.gl.getAttribLocation(program, 'aTextureCoord')
+    this.gl.enableVertexAttribArray(program.vertexCoordAttribute)
+    this.gl.enableVertexAttribArray(program.textureCoordAttribute)
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
+    this.gl.vertexAttribPointer(program.vertexCoordAttribute, 3, this.gl.FLOAT, this.gl.FALSE, 20, 0)
+    this.gl.vertexAttribPointer(program.textureCoordAttribute, 2, this.gl.FLOAT, this.gl.FALSE, 20, 12)
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
+    program.initVShader = () => {
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
+    }
 
     return program
   }
@@ -211,6 +233,27 @@ class GPUUtils {
     return mtx
   }
 }
+
+GPUUtils.vertexTextureCoords = [
+  -1.0, -1.0, 0.0, 0.0, 0.0,
+  1.0, -1.0, 0.0, 1.0, 0.0,
+  -1.0, 1.0, 0.0, 0.0, 1.0,
+  1.0, 1.0, 0.0, 1.0, 1.0
+]
+
+GPUUtils.vertexShaderSrc = `
+#ifdef GL_ES
+precision highp float;
+#endif
+attribute vec3 aVertexCoord;
+attribute vec2 aTextureCoord;
+varying vec2 vTextureCoord;
+
+void main() {
+  gl_Position = vec4(aVertexCoord, 1);
+  vTextureCoord = aTextureCoord;
+}
+`
 
 const gpuutils = new GPUUtils()
 
