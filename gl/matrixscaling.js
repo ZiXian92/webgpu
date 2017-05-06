@@ -2,7 +2,7 @@
  * Defines function to parallelize matrix scaling on GPU.
  */
 
-import { gpuutils, initGL, convertMatrixToTexture, convertTextureToMatrix, makeOutputBuffer, deleteOutputBuffer } from './utils.js'
+import gpuutils from './utils.js'
 
 const vertexPositions = [
   0, 0, 0,
@@ -44,19 +44,18 @@ uniform float scaleFactor;
 uniform int numRows;
 uniform int numCols;
 
-float unpack(vec3 rgb) {
-  rgb*=vec3(255.0, 255.0, 255.0);
-  return rgb.x*65536.0+rgb.y*256.0+rgb.z;
+float unpack(vec4 rgb) {
+  return 0.0;
 }
 
-vec3 pack(float val) {
-  return vec3(mod(val/65536.0, 256.0), mod(val/256.0, 256.0), mod(val, 256.0))/vec3(255.0, 255.0, 255.0);
+vec4 pack(float val) {
+  return vec4(0.0, 0.0, 0.0, 195.0);
 }
 
 void main() {
-  float newValue = scaleFactor*unpack(texture2D(mtx, vTextureCoord).xyzw);
+  // float newValue = scaleFactor*unpack(texture2D(mtx, vTextureCoord).xyzw);
   // gl_FragColor = vec4(pack(newValue), 1);
-  gl_FragColor = texture2D(mtx, vTextureCoord)
+  gl_FragColor = texture2D(mtx, vTextureCoord);
 }
 `
 
@@ -96,6 +95,8 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
     return mtx.map(row => row.map(elem => Math.round(elem * scaleFactor * 100.0) / 100.0))
   }
 
+  gpuutils.setCanvasSize(numCols, numRows)
+
   // Set current program
   gl.useProgram(program)
 
@@ -104,9 +105,9 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
 
   // Init buffer properties
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
-  gl.vertexAttribPointer(program.vertexCoordAttribute, 3, gl.FLOAT, false, 0, 0)
+  gl.vertexAttribPointer(program.vertexCoordAttribute, 3, gl.FLOAT, gl.FALSE, 12, 0)
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeTextureCoordBuffer)
-  gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0)
+  gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, gl.FALSE, 8, 0)
 
   // Prepare output frame buffer
   let outputTexture = gpuutils.makeTexture(null, numRows, numCols)
