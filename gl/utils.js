@@ -51,25 +51,28 @@ class GPUUtils {
   }
 
   /**
-   * Builds a WebGLTexture out of the given data.
+   * Builds a float WebGLTexture out of the given data.
    * No error checking is done so make sure nRows and nCols are consistent with data.
    * @param {Array<Number>?|Array<Array<Number>>?} data Null if everything si to be set to 0. 1D or 2D array otherwise.
    * @param {Integer} nRows Number of rows in data. Set to 1 for 1D data.
    * @param {Integer} nCols Number of columns in data. Same for both 1D and 2D data.
    */
-  makeTexture (data, nRows, nCols) {
+  makeTexturef (data, nRows, nCols) {
     if (!this.gl) return null
+
+    // Set up texture data
     let textureData
     if (!data) textureData = new Uint8Array(nRows * nCols * 4)
     else if (nRows === 1) textureData = new Uint8Array(new Float32Array(data).buffer)
-    else
-      textureData = data.map(row => new Uint8Array(new Float32Array(row).buffer))
-        .reduce((res, cur) => {
-          let arr = new Uint8Array(res.length + cur.length)
-          arr.set(res)
-          arr.set(cur, res.length)
-          return arr
-        }, new Uint8Array(0))
+    else textureData = data.map(row => new Uint8Array(new Float32Array(row).buffer))
+      .reduce((res, cur) => {
+        let arr = new Uint8Array(res.length + cur.length)
+        arr.set(res)
+        arr.set(cur, res.length)
+        return arr
+      }, new Uint8Array(0))
+
+    // Create and initialize texture
     let texture = this.gl.createTexture()
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
@@ -80,6 +83,15 @@ class GPUUtils {
     this.gl.bindTexture(this.gl.TEXTURE_2D, null)
 
     return texture
+  }
+
+  /**
+   * Destroys the given texture and free up resources.
+   * @param {WebGLTexture} texture
+   */
+  destroyTexture (texture) {
+    if (!this.gl) return
+    this.gl.deleteTexture(texture)
   }
 
   /**

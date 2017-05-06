@@ -101,7 +101,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.useProgram(program)
 
   // Convert mtx to vertices/texture
-  let mtxTexture = gpuutils.makeTexture(mtx, numRows, numCols)
+  let mtxTexture = gpuutils.makeTexturef(mtx, numRows, numCols)
 
   // Init buffer properties
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer)
@@ -110,7 +110,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.vertexAttribPointer(program.textureCoordAttribute, 2, gl.FLOAT, gl.FALSE, 8, 0)
 
   // Prepare output frame buffer
-  let outputTexture = gpuutils.makeTexture(null, numRows, numCols)
+  let outputTexture = gpuutils.makeTexturef(null, numRows, numCols)
   gpuutils.setFramebufferTexture(outputTexture)
 
   // Activate and bind textures
@@ -133,9 +133,8 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
   gl.bindBuffer(gl.ARRAY_BUFFER, null)
   gl.bindTexture(gl.TEXTURE_2D, null)
   gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-  // gl.deleteTexture(mtxTexture)
-  gl.deleteTexture(outputTexture)
-  // deleteOutputBuffer(outputBuffer)
+  gpuutils.destroyTexture(mtxTexture)
+  gpuutils.destroyTexture(outputTexture)
 
   return res
 }
