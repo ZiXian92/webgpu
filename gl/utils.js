@@ -41,12 +41,6 @@ class GPUUtils {
     }
   }
 
-  /**
-   * Gets the WebGL rendering context.
-   * @return {WebGLRenderingContext} Returns null if WebGL is not supported.
-   */
-  getGlContext () { return this.gl }
-
   // Initializes the WebGL rendering context
   initGlContext () {
     if (!this.gl) return
@@ -182,6 +176,7 @@ class GPUUtils {
     // Return execution function
     return (dataArrays, dataInfo, uniforms, width, height) => {
       this.setCanvasSize(width, height)
+      this.initGlContext()
       this.gl.useProgram(program)
 
       // Set output framebuffer
