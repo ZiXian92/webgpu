@@ -96,7 +96,6 @@ class GPUUtils {
     let status = this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER)
     switch (status) {
       case this.gl.FRAMEBUFFER_COMPLETE:
-        console.log('Framebuffer ready to use')
         break
       case this.gl.FRAMEBUFFER_UNSUPPORTED:
         console.log('Framebuffer unsupported')
@@ -133,11 +132,11 @@ class GPUUtils {
     this.gl.compileShader(fShader)
     console.log('Compiling vertex shader for matrix scaling')
     let vShaderCompileLog = this.gl.getShaderInfoLog(vShader)
-    console.log(vShaderCompileLog)
+    if (vShaderCompileLog) console.log(vShaderCompileLog)
     vShader = this.gl.getShaderParameter(vShader, this.gl.COMPILE_STATUS) ? vShader : null
     console.log('Compiling fragment shader for matrix scaling')
     let fShaderCompileLog = this.gl.getShaderInfoLog(fShader)
-    console.log(fShaderCompileLog)
+    if (fShaderCompileLog) console.log(fShaderCompileLog)
     fShader = this.gl.getShaderParameter(fShader, this.gl.COMPILE_STATUS) ? fShader : null
 
     // Stop if any shader compilation fails
@@ -187,9 +186,7 @@ class GPUUtils {
     // Read pixels and convert into Float32Array by byte interpretation
     let pixels = new Uint8Array(nRows * nCols * 4)
     this.gl.readPixels(0, 0, nCols, nRows, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels)
-    console.log(pixels)
     pixels = new Float32Array(pixels.buffer)
-    console.log(pixels.length)
 
     // Convert into 2D matrix
     let mtx = []
