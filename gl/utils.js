@@ -2,7 +2,6 @@
  * Contains utility functions to make WebGL usage more convenient.
  * Supports data only up to 2-dimensional arrays due to the nature of
  * textures.
- * 3-dimensional arrays may be supported in the future after getting things to work.
  */
 
 /**
@@ -199,7 +198,7 @@ class GPUUtils {
       // Load in vertices and draw
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
       this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
-      let res = this.readFramebuffer2f(height, width)
+      let res = this.readFramebufferf(height, width)
 
       // Cleanup temporary resources
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
@@ -263,12 +262,12 @@ class GPUUtils {
   }
 
   /**
-   * Reads contents of framebuffer into 2D float array.
+   * Reads contents of framebuffer into matrix.
    * @param {Integer} nRows
    * @param {Integer} nCols
-   * @return {Array<Array<Number>>} Returns matrix on success and null if WebGL is not supported.
+   * @return {Array<Number|Array<Number>>} Returns matrix on success and null if WebGL is not supported.
    */
-  readFramebuffer2f (nRows, nCols) {
+  readFramebufferf (nRows, nCols) {
     if (!this.gl) return null
 
     // Read pixels and convert into Float32Array by byte interpretation
@@ -284,7 +283,7 @@ class GPUUtils {
       let c = i - r * nCols
       mtx[r][c] = pixel
     })
-    return mtx
+    return nRows === 1 ? mtx[0] : mtx
   }
 }
 
