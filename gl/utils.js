@@ -7,9 +7,10 @@
 
 /**
  * Defines utility class for general-purpose GPU computations.
- * If you want to use some of these methods for actual rendering,
- * at the end of rendering pipeline, grab the pixels from output frame buffer,
- * process into ImageData and draw it onto your ouwn canvas.
+ * If you want to use some of these methods for actual drawing,
+ * use libraries like three.js instead as they are more similar to OpenGL.
+ * Image filtering is fine though: just get the canvas, stick the image in and
+ * run your fragment shaders.
  */
 class GPUUtils {
   constructor () {
@@ -102,15 +103,6 @@ class GPUUtils {
   }
 
   /**
-   * Destroys the given texture and free up resources.
-   * @param {WebGLTexture} texture
-   */
-  destroyTexture (texture) {
-    if (!this.gl) return
-    this.gl.deleteTexture(texture)
-  }
-
-  /**
    * Sets frame buffer to use specified texture.
    * @param {WebGLTexture} texture The texture to attach to frame buffer.
    */
@@ -145,9 +137,12 @@ class GPUUtils {
   /**
    * Compiles the 2 shaders and returns the program.
    * @param {String} fragmentShaderSrc Source code for fragment shader
-   * @return {WebGLProgram} The compiled program. Returns null if WebGL is not supported or compilation fails.
+   * @param {Array<String>} uniformVariableNames
+   * @return {(Array<Array<Number|Array<Number>>>, Array<{ name: String, width: Integer, height: Integer }>,
+   *  { <name>: { <type>: String, <value>: Any }}, Integer, Integer) => Array<Number|Array<Number>>}
+   *  A function that runs the shader program using the input data
    */
-  makeShaderPrograms (fragmentShaderSrc) {
+  makeKernel (fragmentShaderSrc, uniformVariableNames) {
     if (!this.gl) return null
 
     // Create and compile shader
@@ -175,44 +170,108 @@ class GPUUtils {
     this.gl.enableVertexAttribArray(program.vertexCoordAttribute)
     this.gl.enableVertexAttribArray(program.textureCoordAttribute)
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
-    this.gl.vertexAttribPointer(program.vertexCoordAttribute, 3, this.gl.FLOAT, this.gl.FALSE, 20, 0)
-    this.gl.vertexAttribPointer(program.textureCoordAttribute, 2, this.gl.FLOAT, this.gl.FALSE, 20, 12)
+    this.gl.vertexAttribPointer(program.vertexCoordAttribute, 3, this.gl.FLOAT, false, 20, 0)
+    this.gl.vertexAttribPointer(program.textureCoordAttribute, 2, this.gl.FLOAT, false, 20, 12)
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
-    program.initVShader = () => {
+
+    // Get locations of all uniforms
+    uniformVariableNames.forEach(n => {
+      program[`${n}UniformLoc`] = this.gl.getUniformLocation(program, n)
+    })
+
+    // Return execution function
+    return (dataArrays, dataInfo, uniforms, width, height) => {
+      this.setCanvasSize(width, height)
+      this.gl.useProgram(program)
+
+      // Set output framebuffer
+      let outputTexture = this.makeTexturef(null, height, width)
+      this.setFramebufferTexture(outputTexture)
+      this.setUniforms(uniforms)
+
+      // Load textures
+      let textures = dataArrays.map((arr, i) => {
+        let r = dataInfo[i].height
+        let c = dataInfo[i].width
+        return this.makeTexturef(arr, r, c)
+      })
+      textures.forEach((t, i) => {
+        this.gl.activeTexture(this.gl[`TEXTURE${i}`])
+        this.gl.bindTexture(this.gl.TEXTURE_2D, t)
+        this.gl.uniform1i(program[`${dataInfo[i].name}UniformLoc`], i)
+      })
+
+      // Load in vertices and draw
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordsBuffer)
+      this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
+      let res = this.readFramebuffer2f(height, width)
+
+      // Cleanup temporary resources
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
+      this.gl.deleteTexture(outputTexture)
+      textures.forEach((t, i) => {
+        this.gl.activeTexture(this.gl[`TEXTURE${i}`])
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+        this.gl.deleteTexture(t)
+      })
+      return res
     }
-
-    return program
   }
 
   /**
-   * Sets the program to be used.
+   * Sets the global constants for the program.
+   * The correct program should be set before calling this method.
    * @param {WebGLProgram} program
+   * @param {{ <name>: { <type>: String, <value>: Any }}} uniforms <type> corresponds to a valid GLSL uniform type, except sampler types
    */
-  setProgram (program) {
-    if (!this.gl) return
-    this.gl.useProgram(program)
-  }
-
-  /**
-   * Binds the given texture to the specified texture unit.
-   * @param {Integer} textureUnit
-   * @param {WebGLTexture} texture
-   * @param {WebGLUniformLocation} textureLoc
-   */
-  bindTexture (textureUnit, texture, textureLoc) {
-    if (!this.gl) return null
-
-    this.gl.activeTexture(this.gl[`TEXTURE${textureUnit}`])
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
-    this.gl.uniform1i(textureLoc, textureUnit)
+  setUniforms (program, uniforms) {
+    for (var varName in uniforms) {
+      let varProps = uniforms[varName]
+      switch (varProps.type) {
+        case 'bool': case 'int':
+          this.gl.uniform1i(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'float':
+          this.gl.uniform1f(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'vec2':
+          this.gl.uniform2fv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'vec3':
+          this.gl.uniform3fv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'vec4':
+          this.gl.uniform4fv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'bvec2': case 'ivec2':
+          this.gl.uniform2iv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'bvec3': case 'ivec3':
+          this.gl.uniform3iv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'bvec4': case 'ivec4':
+          this.gl.uniform4iv(program[`uniform${varName}Loc`], varProps.value)
+          break
+        case 'mat2':
+          this.gl.uniformMatrix2fv(program[`uniform${varName}Loc`], false, varProps.value)
+          break
+        case 'mat3':
+          this.gl.uniformMatrix3fv(program[`uniform${varName}Loc`], false, varProps.value)
+          break
+        case 'mat4':
+          this.gl.uniformMatrix4fv(program[`uniform${varName}Loc`], false, varProps.value)
+          break
+        default: break
+      }
+    }
   }
 
   /**
    * Reads contents of framebuffer into 2D float array.
    * @param {Integer} nRows
    * @param {Integer} nCols
-   * @return {Array<Float32Array>} Returns matrix on success and null if WebGL is not supported.
+   * @return {Array<Array<Number>>} Returns matrix on success and null if WebGL is not supported.
    */
   readFramebuffer2f (nRows, nCols) {
     if (!this.gl) return null
@@ -256,5 +315,26 @@ void main() {
 `
 
 const gpuutils = new GPUUtils()
+
+gpuutils.headerSrc = `
+#ifdef GL_ES
+precision highp float;
+#endif
+varying vec2 vTextureCoord;
+uniform int height;
+uniform int width;
+`
+
+gpuutils.packValueSrc = `
+vec4 packValue(float value) {
+  return vec4(0.0, 0.0, 0.0, 0.0);
+}
+`
+
+gpuutils.unpackValueSrc = `
+float unpackValue(vec4 bytes) {
+  return 0.0;
+}
+`
 
 export default gpuutils
