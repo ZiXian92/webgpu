@@ -26,7 +26,7 @@ class GPUUtils {
       this.vShader = this.gl.createShader(this.gl.VERTEX_SHADER)
       this.gl.shaderSource(this.vShader, GPUUtils.vertexShaderSrc)
       this.gl.compileShader(this.vShader)
-      console.log('Compiling vertex shader for matrix scaling')
+      console.log('Compiling vertex shader')
       let vShaderCompileLog = this.gl.getShaderInfoLog(this.vShader)
       if (vShaderCompileLog) console.log(vShaderCompileLog)
 
