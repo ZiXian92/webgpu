@@ -9,15 +9,10 @@ const fragmentShaderSrc =
 ${gpuutils.headerSrc}
 uniform sampler2D mtx;
 uniform float scaleFactor;
-
 ${gpuutils.packValueSrc}
-
 ${gpuutils.unpackValueSrc}
-
 void main() {
-  // float newValue = scaleFactor*unpack(texture2D(mtx, vTextureCoord).xyzw);
-  // gl_FragColor = vec4(pack(newValue), 1);
-  gl_FragColor = texture2D(mtx, vTextureCoord);
+  gl_FragColor = packValue(scaleFactor * unpackValue(texture2D(mtx, vTextureCoord)));
 }
 `
 

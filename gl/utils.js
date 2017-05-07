@@ -181,7 +181,7 @@ class GPUUtils {
       // Set output framebuffer
       let outputTexture = this.makeTexturef(null, height, width)
       this.setFramebufferTexture(outputTexture)
-      this.setUniforms(uniforms)
+      this.setUniforms(program, uniforms)
 
       // Load textures
       let textures = dataArrays.map((arr, i) => {
@@ -216,7 +216,6 @@ class GPUUtils {
   /**
    * Sets the global constants for the program.
    * The correct program should be set before calling this method.
-   * @param {WebGLProgram} program
    * @param {{ <name>: { <type>: String, <value>: Any }}} uniforms <type> corresponds to a valid GLSL uniform type, except sampler types
    */
   setUniforms (program, uniforms) {
@@ -224,37 +223,37 @@ class GPUUtils {
       let varProps = uniforms[varName]
       switch (varProps.type) {
         case 'bool': case 'int':
-          this.gl.uniform1i(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform1i(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'float':
-          this.gl.uniform1f(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform1f(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'vec2':
-          this.gl.uniform2fv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform2fv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'vec3':
-          this.gl.uniform3fv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform3fv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'vec4':
-          this.gl.uniform4fv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform4fv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'bvec2': case 'ivec2':
-          this.gl.uniform2iv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform2iv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'bvec3': case 'ivec3':
-          this.gl.uniform3iv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform3iv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'bvec4': case 'ivec4':
-          this.gl.uniform4iv(program[`uniform${varName}Loc`], varProps.value)
+          this.gl.uniform4iv(program[`${varName}UniformLoc`], varProps.value)
           break
         case 'mat2':
-          this.gl.uniformMatrix2fv(program[`uniform${varName}Loc`], false, varProps.value)
+          this.gl.uniformMatrix2fv(program[`${varName}UniformLoc`], false, varProps.value)
           break
         case 'mat3':
-          this.gl.uniformMatrix3fv(program[`uniform${varName}Loc`], false, varProps.value)
+          this.gl.uniformMatrix3fv(program[`${varName}UniformLoc`], false, varProps.value)
           break
         case 'mat4':
-          this.gl.uniformMatrix4fv(program[`uniform${varName}Loc`], false, varProps.value)
+          this.gl.uniformMatrix4fv(program[`${varName}UniformLoc`], false, varProps.value)
           break
         default: break
       }
@@ -321,13 +320,35 @@ uniform int width;
 
 gpuutils.packValueSrc = `
 vec4 packValue(float value) {
-  return vec4(0.0, 0.0, 0.0, 0.0);
+  float sgn = step(0.0, -value);
+  value = abs(value);
+  float exponent = floor(log2(value));
+  float mantissa = value * pow(2.0, -exponent) - 1.0;
+  exponent = exponent + 127.0;
+  float a, b, g, r;
+  a = floor(exponent / 2.0);
+  exponent = exponent - a * 2.0;
+  a = a + 128.0 * sgn;
+  b = floor(128.0 * mantissa);
+  mantissa = mantissa * 128.0 - b;
+  b = b + 128.0 * exponent;
+  g = floor(mantissa * 256.0);
+  mantissa = mantissa * 256.0 - g;
+  r = floor(mantissa * 256.0);
+  return vec4(r, g, b, a) / vec4(255.0, 255.0, 255.0, 255.0);
 }
 `
 
 gpuutils.unpackValueSrc = `
 float unpackValue(vec4 bytes) {
-  return 0.0;
+  bytes *= vec4(255.0, 255.0, 255.0, 255.0);
+  float sgn = step(128.0, bytes.a);
+  float exponent = 2.0 * (bytes.a - sgn * 128.0);
+  float exponentMod2 = step(128.0, bytes.b);
+  exponent = exponent + exponentMod2 - 127.0;
+  float mantissa = (bytes.b - exponentMod2 * 128.0) * 65536.0;
+  mantissa = mantissa + bytes.g * 256.0 + bytes.r;
+  return pow(-1.0, sgn) * exp2(exponent) * (1.0 + mantissa * exp2(-23.0));
 }
 `
 
