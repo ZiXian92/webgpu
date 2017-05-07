@@ -1,6 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
+import Matrix from './Matrix.jsx'
 import { scaleMatrix } from '../gl/matrixscaling.js'
 
 const MAX_ROWS = 10
@@ -10,9 +11,20 @@ class MatrixScaler extends React.Component {
   constructor () {
     super()
     this.scaleMatrix = this.scaleMatrix.bind(this)
+    this.benchmark = this.benchmark.bind(this)
     this.state = {
       scaleFactor: 1
     }
+  }
+
+  initMatrix (nRows, nCols) {
+    let mtx = []
+    for (let r = 0; r < nRows; r++) {
+      let row = []
+      for (let c = 0; c < nCols; c++) row.push(Math.round(Math.random() * 100000) / 100)
+      mtx.push(row)
+    }
+    return mtx
   }
 
   componentWillMount () {
@@ -23,12 +35,7 @@ class MatrixScaler extends React.Component {
     C = C <= 0 ? this.defaultprops.cols : (C > MAX_COLS ? MAX_COLS : C)
 
     // Initialize matrix with random numbers in [0, 1000)
-    let mtx = []
-    for (let r = 0; r < R; r++) {
-      let row = []
-      for (let c = 0; c < C; c++) row.push(Math.round(Math.random() * 100000) / 100)
-      mtx.push(row)
-    }
+    let mtx = this.initMatrix(R, C)
 
     this.setState({ mtx, R, C })
   }
@@ -43,31 +50,38 @@ class MatrixScaler extends React.Component {
     })
   }
 
+  benchmark (evt) {
+    let sizes = [2, 4, 8, 16, 32, 64, 1024]
+    let sf = 27
+    sizes.forEach(s => {
+      let m = this.initMatrix(s, s)
+      let st = performance.now()
+      scaleMatrix(m, s, s, sf, 0)
+      let et = performance.now()
+      console.log(`CPU took ${et - st} ms to scale order ${s} matrix`)
+      st = performance.now()
+      scaleMatrix(m, s, s, sf, 1)
+      et = performance.now()
+      console.log(`GPU took ${et - st} ms to scale order ${s} matrix`)
+    })
+  }
+
   render () {
     return (
-      <div>
-        <form className="form-inline" onSubmit={this.scaleMatrix}>
-          <div className="form-group">
-            <label htmlFor="scaleFactorInput">Scale Factor: </label>
-            <input type="nunber" name="scaleFactorInput" className="form-control" defaultValue={this.state.scaleFactor} ref={ref => this.scaleFactorInput = ref} pattern="-?[0-9]+(\.[0-9]+)?" required />
-          </div>
-          <button type="submit" className="btn btn-primary">Scale</button>
-        </form>
-        <table className="table table-bordered">
-          <tbody>
-          {
-            this.state.mtx.map((row, r) => (
-              <tr key={r}>
-                {
-                  row.map((elem, c) => (
-                    <td key={r + '.' + c}>{elem}</td>
-                  ))
-                }
-              </tr>
-            ))
-          }
-          </tbody>
-        </table>
+      <div className="container-fluid">
+        <div className="row">
+          <form className="form-inline" onSubmit={this.scaleMatrix}>
+            <div className="form-group">
+              <label htmlFor="scaleFactorInput">Scale Factor: </label>
+              <input type="nunber" name="scaleFactorInput" className="form-control" defaultValue={this.state.scaleFactor} ref={ref => this.scaleFactorInput = ref} pattern="-?[0-9]+(\.[0-9]+)?" required />
+            </div>
+            <button type="submit" className="btn btn-primary">Scale</button>
+            <button type="button" className="btn btn-success" onClick={this.benchmark}>Benchmark</button>
+          </form>
+        </div>
+        <div className="row">
+          <Matrix className="col-sm-10 col-sm-offset-1" data={this.state.mtx} rows={this.state.R} cols={this.state.C} />
+        </div>
       </div>
     )
   }
