@@ -2,6 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 
 import Matrix from './Matrix.jsx'
+import BenchmarkTable from './BenchmarkTable.jsx'
 import { scaleMatrix } from '../gl/matrixscaling.js'
 
 const MAX_ROWS = 10
@@ -53,16 +54,20 @@ class MatrixScaler extends React.Component {
   benchmark (evt) {
     let sizes = [2, 4, 8, 16, 32, 64, 1024]
     let sf = 27
-    sizes.forEach(s => {
+    let scores = sizes.map(s => {
       let m = this.initMatrix(s, s)
       let st = performance.now()
       scaleMatrix(m, s, s, sf, 0)
       let et = performance.now()
-      console.log(`CPU took ${et - st} ms to scale order ${s} matrix`)
+      let cputime = Math.round((et - st) * 100.0) / 100.0
       st = performance.now()
       scaleMatrix(m, s, s, sf, 1)
       et = performance.now()
-      console.log(`GPU took ${et - st} ms to scale order ${s} matrix`)
+      let gputime = Math.round((et - st) * 100.0) / 100.0
+      return [s, cputime, gputime]
+    })
+    this.setState({
+      benchmarkScores: scores
     })
   }
 
@@ -83,6 +88,13 @@ class MatrixScaler extends React.Component {
         <div className="row">
           <Matrix className="col-sm-10 col-sm-offset-1" data={this.state.mtx} rows={this.state.R} cols={this.state.C} />
         </div>
+        { this.state.benchmarkScores &&
+          <div>
+            <h3>Benchmark Results</h3>
+            <BenchmarkTable scores={this.state.benchmarkScores} />
+          </div>
+        }
+
       </div>
     )
   }

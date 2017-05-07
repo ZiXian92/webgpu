@@ -8,11 +8,13 @@ import React from 'react'
 import matrixMultiply from '../gl/matrixmultiplication.js'
 
 import Matrix from './Matrix.jsx'
+import BenchmarkTable from './BenchmarkTable.jsx'
 
 export default class MatrixMultiplier extends React.Component {
   constructor () {
     super()
     this.multiplyMatrices = this.multiplyMatrices.bind(this)
+    this.benchmark = this.benchmark.bind(this)
     this.N1 = 4
     this.M1 = this.N2 = 5
     this.M2 = 6
@@ -41,6 +43,24 @@ export default class MatrixMultiplier extends React.Component {
     })
   }
 
+  benchmark () {
+    let sizes = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    let scores = sizes.map(sz => {
+      let m1 = this.initMatrix(sz, sz)
+      let m2 = this.initMatrix(sz, sz)
+      let st = performance.now()
+      matrixMultiply(m1, m2, sz, sz, sz, sz, 0)
+      let et = performance.now()
+      let cputime = Math.round((et - st) * 100.0) / 100.0
+      st = performance.now()
+      matrixMultiply(m1, m2, sz, sz, sz, sz, 1)
+      et = performance.now()
+      let gputime = Math.round((et - st) * 100.0) / 100.0
+      return [sz, cputime, gputime]
+    })
+    this.setState({ benchmarkScores: scores })
+  }
+
   render () {
     return (
       <div className="container-fluid">
@@ -54,9 +74,16 @@ export default class MatrixMultiplier extends React.Component {
         <div className="row">
           <Matrix className="col-sm-10 col-sm-offset-1" data={this.state.outMtx} rows={this.N1} cols={this.M2} />
         </div>
-        <div className="text-center">
+        <div className="row text-center">
           <button className="btn btn-primary" onClick={this.multiplyMatrices}>Compute</button>
+          <button className="btn btn-success" onClick={this.benchmark}>Benchmark</button>
         </div>
+        { this.state.benchmarkScores &&
+          <div>
+            <h3>Benchmark Results</h3>
+            <BenchmarkTable scores={this.state.benchmarkScores} />
+          </div>
+        }
       </div>
     )
   }

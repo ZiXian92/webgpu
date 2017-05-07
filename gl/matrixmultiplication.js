@@ -17,7 +17,7 @@ void main() {
   vec2 mtx1Coord = vec2(startCoord, vTextureCoord.t);
   vec2 mtx2Coord = vec2(vTextureCoord.s, startCoord);
   float ans = unpackValue(texture2D(mtx1, mtx1Coord)) * unpackValue(texture2D(mtx2, mtx2Coord));
-  for(int k=1; k<1024; k++) {
+  for(int k=1; k<2048; k++) {
     if (k >= width1) break;
     mtx1Coord.s += increment;
     mtx2Coord.t += increment;
