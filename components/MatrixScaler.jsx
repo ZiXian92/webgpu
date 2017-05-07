@@ -42,7 +42,7 @@ class MatrixScaler extends React.Component {
 
   scaleMatrix (evt) {
     evt.preventDefault()
-    let mtx = scaleMatrix(this.state.mtx, this.state.R, this.state.C, Number(this.scaleFactorInput.value))
+    let mtx = scaleMatrix(this.state.mtx, this.state.R, this.state.C, Number(this.scaleFactorInput.value), 1)
     mtx = mtx.map(row => row.map(elem => Math.round(elem * 100.0) / 100.0))
     this.setState({
       mtx,
@@ -69,8 +69,9 @@ class MatrixScaler extends React.Component {
   render () {
     return (
       <div className="container-fluid">
+        <h2>Matrix Scaling</h2>
         <div className="row">
-          <form className="form-inline" onSubmit={this.scaleMatrix}>
+          <form className="form-inline col-sm-10 col-sm-offset-1" onSubmit={this.scaleMatrix}>
             <div className="form-group">
               <label htmlFor="scaleFactorInput">Scale Factor: </label>
               <input type="nunber" name="scaleFactorInput" className="form-control" defaultValue={this.state.scaleFactor} ref={ref => this.scaleFactorInput = ref} pattern="-?[0-9]+(\.[0-9]+)?" required />

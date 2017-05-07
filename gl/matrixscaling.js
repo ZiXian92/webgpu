@@ -22,6 +22,7 @@ export function scaleMatrix (mtx, numRows, numCols, scaleFactor, useGPU = 0) {
   // Handle case where imposible to run on GPU
   if (!useGPU || !program) {
     if (!program) console.log('Unable to prepare GPU-parallel program. Falling back to CPU.')
+    console.log('Scaling matrix using CPU')
     return mtx.map(row => row.map(elem => Math.round(elem * scaleFactor * 100.0) / 100.0))
   }
 
