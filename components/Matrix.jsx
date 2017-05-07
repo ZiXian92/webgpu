@@ -32,3 +32,5 @@ Matrix.propTypes = {
   rows: PropTypes.number.isRequired,
   cols: PropTypes.number.isRequired
 }
+
+export default Matrix
