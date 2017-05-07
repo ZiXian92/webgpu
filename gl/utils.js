@@ -168,6 +168,8 @@ class GPUUtils {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
 
     // Get locations of all uniforms
+    uniformVariableNames.push('width')
+    uniformVariableNames.push('height')
     uniformVariableNames.forEach(n => {
       program[`${n}UniformLoc`] = this.gl.getUniformLocation(program, n)
     })
@@ -181,6 +183,10 @@ class GPUUtils {
       // Set output framebuffer
       let outputTexture = this.makeTexturef(null, height, width)
       this.setFramebufferTexture(outputTexture)
+
+      // Set uniforms
+      uniforms.width = { type: 'int', value: width }
+      uniforms.height = { type: 'int', value: height }
       this.setUniforms(program, uniforms)
 
       // Load textures
