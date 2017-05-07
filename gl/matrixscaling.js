@@ -16,14 +16,12 @@ void main() {
 }
 `
 
-let program = gpuutils.makeKernel(fragmentShaderSrc, [
-  'mtx', 'scaleFactor'
-])
+let program = gpuutils.makeKernel(fragmentShaderSrc, ['mtx', 'scaleFactor'])
 
-export function scaleMatrix (mtx, numRows, numCols, scaleFactor) {
+export function scaleMatrix (mtx, numRows, numCols, scaleFactor, useGPU = 0) {
   // Handle case where imposible to run on GPU
-  if (!program) {
-    console.log('Unable to prepare GPU-parallel program. Falling back to CPU.')
+  if (!useGPU || !program) {
+    if (!program) console.log('Unable to prepare GPU-parallel program. Falling back to CPU.')
     return mtx.map(row => row.map(elem => Math.round(elem * scaleFactor * 100.0) / 100.0))
   }
 
