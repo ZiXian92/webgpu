@@ -11056,7 +11056,13 @@ var App = function App(props, context) {
       _react2.default.createElement(
         'p',
         null,
-        'Simple examples of GPU parallelizable stuff on web page.'
+        'Simple examples of GPU parallelizable stuff on web page using a ',
+        _react2.default.createElement(
+          'a',
+          { href: 'https://github.com/zixian92/gpuutils' },
+          'rip-off GPU utility library'
+        ),
+        ' I wrote.'
       )
     ),
     _react2.default.createElement(_MatrixScaler2.default, { rows: 5, cols: 5 }),
