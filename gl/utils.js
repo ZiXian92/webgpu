@@ -128,7 +128,7 @@ class GPUUtils {
   }
 
   /**
-   * Compiles the 2 shaders and returns the program.
+   * Compiles the fragment shaders and returns the program.
    * @param {String} fragmentShaderSrc Source code for fragment shader
    * @param {Array<String>} uniformVariableNames
    * @return {(Array<Array<Number|Array<Number>>>, Array<{ name: String, width: Integer, height: Integer }>,
@@ -286,6 +286,7 @@ class GPUUtils {
   }
 }
 
+// Standard geometry for mapping the texture to entire viewport.
 GPUUtils.vertexTextureCoords = [
   -1.0, -1.0, 0.0, 0.0, 0.0,
   1.0, -1.0, 0.0, 1.0, 0.0,
@@ -293,6 +294,7 @@ GPUUtils.vertexTextureCoords = [
   1.0, 1.0, 0.0, 1.0, 1.0
 ]
 
+// Vertex shader thaat will be used in all GPGPU programs.
 GPUUtils.vertexShaderSrc = `
 #ifdef GL_ES
 precision highp float;
@@ -309,6 +311,7 @@ void main() {
 
 const gpuutils = new GPUUtils()
 
+// High preceision declaration and other compulsory variables
 gpuutils.headerSrc = `
 #ifdef GL_ES
 precision highp float;
